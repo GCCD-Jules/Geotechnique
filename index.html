@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Calculateur & Coupe Géotechnique GCCD</title>
+  <!-- Chargement de Plotly.js -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --primary: #2563eb;
+      --border: #cbd5e1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 24px;
+    }
+
+    header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    header h1 { font-size: 1.8rem; color: #0f172a; margin-bottom: 6px; }
+    header p { color: #64748b; font-size: 0.95rem; }
+
+    .container {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 24px;
+      max-width: 1450px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+    }
+
+    .control-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    label { font-size: 0.85rem; font-weight: 600; color: #475569; display: block; margin-bottom: 4px; }
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+    }
+
+    .layer-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      background: #f1f5f9;
+    }
+
+    .layer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      cursor: pointer;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      padding: 8px 14px;
+      transition: background 0.15s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .btn-remove {
+      background: #ef4444;
+      color: white;
+      font-size: 0.75rem;
+      padding: 4px 8px;
+    }
+    .btn-remove:hover { background: #dc2626; }
+
+    /* Zone de visualisation double : coupe + diagramme */
+    .vis-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 16px;
+      align-items: stretch;
+      min-height: 520px;
+    }
+
+    @media (max-width: 768px) {
+      .vis-grid { grid-template-columns: 1fr; }
+    }
+
+    #strati-container {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .strati-layer {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-sizing: border-box;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+
+    .strati-layer-desc {
+      font-size: 0.75rem;
+      font-weight: normal;
+      color: #334155;
+      margin-top: 2px;
+    }
+
+    .water-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      border-top: 2px solid #0284c7;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .water-badge {
+      position: absolute;
+      right: 4px;
+      top: -20px;
+      background: #0284c7;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    #plot-area {
+      width: 100%;
+      height: 520px;
+    }
+
+    .empty-msg {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      color: #94a3b8;
+      font-style: italic;
+      text-align: center;
+      padding: 24px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.85rem;
+    }
+
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      text-align: right;
+    }
+    th {
+      background: #f8fafc;
+      color: #334155;
+    }
+    td:first-child, th:first-child { text-align: left; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Profil des Contraintes Géotechniques (Terzaghi)</h1>
+</header>
+
+<div class="container">
+  <!-- Panneau gauche : Saisie des données -->
+  <div class="card">
+    <h2 class="card-title">Paramètres Généraux</h2>
+    <div class="control-group">
+      <div style="flex: 1;">
+        <label for="gw-depth">Profondeur nappe (m) :</label>
+        <input type="number" id="gw-depth" placeholder="Ex: 2.5" step="0.25" min="0">
+      </div>
+      <div style="flex: 1;">
+        <label for="gamma-w">&gamma;w (eau) :</label>
+        <select id="gamma-w">
+          <option value="10">10.0 kN/m³</option>
+          <option value="9.81">9.81 kN/m³</option>
+        </select>
+      </div>
+    </div>
+
+    <h2 class="card-title" style="margin-top: 20px;">Couches de Sol</h2>
+    <div id="layers-list"></div>
+
+    <button type="button" class="btn-primary" onclick="addLayer()">+ Ajouter une couche</button>
+  </div>
+
+  <!-- Panneau droit : Coupe stratigraphique + Plotly + Tableau -->
+  <div class="card">
+    <h2 class="card-title">Visualisation du Sol & Diagramme de Contraintes</h2>
+    
+    <div class="vis-grid">
+      <!-- Coupe stratigraphique à l'échelle -->
+      <div>
+        <label style="text-align: center; margin-bottom: 8px;">Coupe Géologique</label>
+        <div id="strati-container">
+          <div class="empty-msg">Ajoutez une couche pour afficher la coupe</div>
+        </div>
+      </div>
+
+      <!-- Graphique Plotly -->
+      <div>
+        <label style="text-align: center; margin-bottom: 8px;">Courbes de Contraintes (kPa)</label>
+        <div id="plot-area">
+          <div class="empty-msg">Ajoutez au moins une couche complète pour générer les courbes.</div>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="card-title" style="margin-top: 24px;">Tableau des Interfaces</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Niveau / Repère</th>
+          <th>z (m)</th>
+          <th>&sigma; (kPa)</th>
+          <th>u (kPa)</th>
+          <th>&sigma;' (kPa)</th>
+        </tr>
+      </thead>
+      <tbody id="results-table-body">
+        <tr>
+          <td colspan="5" style="text-align: center; color: #94a3b8; font-style: italic;">Aucune donnée saisie</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  // Démarrage entièrement vide
+  let layers = [];
+
+  // Palette de teintes naturelles pour différencier les couches de sol
+  const layerColors = [
+    "#fef08a", // Jaune sable
+    "#fed7aa", // Beige limoneux
+    "#d8b4fe", // Violette marne
+    "#bbf7d0", // Argile verte
+    "#e2e8f0", // Gris remblai
+    "#fbcfe8"  // Craie rosée
+  ];
+
+  function renderLayersForm() {
+    const container = document.getElementById("layers-list");
+    container.innerHTML = "";
+
+    layers.forEach((layer, idx) => {
+      const layerEl = document.createElement("div");
+      layerEl.className = "layer-card";
+      layerEl.innerHTML = `
+        <div class="layer-header">
+          <input type="text" placeholder="Nom du sol (ex: Argile)" 
+                 value="${layer.name || ''}" 
+                 style="width: 70%; font-weight: bold;" 
+                 oninput="updateLayerProp(${idx}, 'name', this.value)">
+          <button class="btn-remove" onclick="removeLayer(${idx})">Supprimer</button>
+        </div>
+        <div class="layer-grid">
+          <div>
+            <label>Épaisseur (m)</label>
+            <input type="number" step="0.5" min="0.01" placeholder="Ex: 3"
+                   value="${layer.thickness !== null ? layer.thickness : ''}" 
+                   oninput="updateLayerProp(${idx}, 'thickness', this.value)">
+          </div>
+          <div>
+            <label>&gamma; humide (kN/m³)</label>
+            <input type="number" step="0.5" min="0" placeholder="Ex: 18"
+                   value="${layer.gamma_dry !== null ? layer.gamma_dry : ''}" 
+                   oninput="updateLayerProp(${idx}, 'gamma_dry', this.value)">
+          </div>
+          <div>
+            <label>&gamma; sat (kN/m³)</label>
+            <input type="number" step="0.5" min="0" placeholder="Ex: 20"
+                   value="${layer.gamma_sat !== null ? layer.gamma_sat : ''}" 
+                   oninput="updateLayerProp(${idx}, 'gamma_sat', this.value)">
+          </div>
+        </div>
+      `;
+      container.appendChild(layerEl);
+    });
+  }
+
+  function addLayer() {
+    layers.push({
+      name: `Couche ${layers.length + 1}`,
+      thickness: null,
+      gamma_dry: null,
+      gamma_sat: null
+    });
+    renderLayersForm();
+  }
+
+  function removeLayer(index) {
+    layers.splice(index, 1);
+    renderLayersForm();
+    calculateAndPlot();
+  }
+
+  function updateLayerProp(index, prop, value) {
+    if (prop === 'name') {
+      layers[index][prop] = value;
+    } else {
+      layers[index][prop] = value === '' ? null : parseFloat(value);
+    }
+    calculateAndPlot();
+  }
+
+  document.getElementById("gw-depth").addEventListener("input", calculateAndPlot);
+  document.getElementById("gamma-w").addEventListener("change", calculateAndPlot);
+
+  function calculateAndPlot() {
+    const gwDepthInput = document.getElementById("gw-depth").value;
+    const gwDepth = gwDepthInput === '' ? null : parseFloat(gwDepthInput);
+    const gammaW = parseFloat(document.getElementById("gamma-w").value);
+
+    // Vérifier si toutes les couches saisies sont complètes et valides
+    const validLayers = layers.filter(l => 
+      l.thickness !== null && l.thickness > 0 &&
+      l.gamma_dry !== null && l.gamma_dry >= 0 &&
+      l.gamma_sat !== null && l.gamma_sat >= 0
+    );
+
+    const stratiContainer = document.getElementById("strati-container");
+    const tableBody = document.getElementById("results-table-body");
+    const plotArea = document.getElementById("plot-area");
+
+    if (validLayers.length === 0) {
+      stratiContainer.innerHTML = `<div class="empty-msg">Ajoutez une couche pour afficher la coupe</div>`;
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #94a3b8; font-style: italic;">Renseignez les épaisseurs et &gamma; pour calculer</td></tr>`;
+      plotArea.innerHTML = `<div class="empty-msg">Ajoutez au moins une couche complète pour générer les courbes.</div>`;
+      return;
+    }
+
+    // 1. Calcul de la profondeur totale
+    const totalDepth = validLayers.reduce((sum, l) => sum + l.thickness, 0);
+
+    // 2. Rendu de la coupe stratigraphique
+    stratiContainer.innerHTML = "";
+    let accumulatedZ = 0;
+    validLayers.forEach((l, idx) => {
+      const heightPercent = (l.thickness / totalDepth) * 100;
+      const bg = layerColors[idx % layerColors.length];
+      const zTop = accumulatedZ;
+      accumulatedZ += l.thickness;
+      const zBottom = accumulatedZ;
+
+      const layerDiv = document.createElement("div");
+      layerDiv.className = "strati-layer";
+      layerDiv.style.height = `${heightPercent}%`;
+      layerDiv.style.backgroundColor = bg;
+      layerDiv.innerHTML = `
+        <div>${l.name || 'Couche ' + (idx + 1)}</div>
+        <div class="strati-layer-desc">${l.thickness} m (z: ${zTop.toFixed(1)} à ${zBottom.toFixed(1)} m)</div>
+      `;
+      stratiContainer.appendChild(layerDiv);
+    });
+
+    // Ligne et repère visuel de la nappe phréatique
+    if (gwDepth !== null && gwDepth >= 0 && gwDepth <= totalDepth) {
+      const topPercent = (gwDepth / totalDepth) * 100;
+      const waterLine = document.createElement("div");
+      waterLine.className = "water-line";
+      waterLine.style.top = `${topPercent}%`;
+      waterLine.innerHTML = `<span class="water-badge">&#9660; Nappe (${gwDepth.toFixed(2)} m)</span>`;
+      stratiContainer.appendChild(waterLine);
+    }
+
+    // 3. Détermination des points de calcul
+    let depths = [0];
+    let runningZ = 0;
+    validLayers.forEach(l => {
+      runningZ += l.thickness;
+      depths.push(runningZ);
+    });
+
+    if (gwDepth !== null && gwDepth > 0 && gwDepth < totalDepth && !depths.includes(gwDepth)) {
+      depths.push(gwDepth);
+    }
+    depths.sort((a, b) => a - b);
+
+    // 4. Calcul de sigma, u et sigma'
+    let profile = [];
+    let currentSigma = 0;
+
+    depths.forEach((z, index) => {
+      if (index === 0) {
+        profile.push({ z: 0, sigma: 0, u: 0, sigma_prime: 0, label: "Surface (z = 0 m)" });
+        return;
+      }
+
+      let prevZ = depths[index - 1];
+      let dz = z - prevZ;
+      let midZ = (prevZ + z) / 2;
+
+      // Déterminer la couche active pour ce tronçon
+      let layerZCursor = 0;
+      let activeLayer = validLayers[0];
+      for (let l of validLayers) {
+        layerZCursor += l.thickness;
+        if (midZ <= layerZCursor) {
+          activeLayer = l;
+          break;
+        }
+      }
+
+      let isSubmerged = (gwDepth !== null) && (midZ >= gwDepth);
+      let gamma = isSubmerged ? activeLayer.gamma_sat : activeLayer.gamma_dry;
+
+      currentSigma += gamma * dz;
+
+      let u = (gwDepth !== null && z > gwDepth) ? gammaW * (z - gwDepth) : 0;
+      let sigmaPrime = currentSigma - u;
+
+      let label = `Interface (z = ${z.toFixed(2)} m)`;
+      if (gwDepth !== null && Math.abs(z - gwDepth) < 0.001) {
+        label = `Nappe phréatique (z = ${z.toFixed(2)} m)`;
+      }
+
+      profile.push({ z, sigma: currentSigma, u, sigma_prime: sigmaPrime, label });
+    });
+
+    // 5. Tableau des résultats
+    tableBody.innerHTML = "";
+    profile.forEach(p => {
+      tableBody.innerHTML += `<tr>
+        <td>${p.label}</td>
+        <td>${p.z.toFixed(2)}</td>
+        <td>${p.sigma.toFixed(2)}</td>
+        <td>${p.u.toFixed(2)}</td>
+        <td>${p.sigma_prime.toFixed(2)}</td>
+      </tr>`;
+    });
+
+    // 6. Tracé Plotly
+    const traceSigma = {
+      x: profile.map(p => p.sigma),
+      y: profile.map(p => p.z),
+      mode: 'lines+markers',
+      name: 'Contrainte totale &sigma;',
+      line: { color: '#0284c7', width: 3 }
+    };
+
+    const traceU = {
+      x: profile.map(p => p.u),
+      y: profile.map(p => p.z),
+      mode: 'lines+markers',
+      name: 'Pression interst. u',
+      line: { color: '#06b6d4', width: 2, dash: 'dot' }
+    };
+
+    const traceSigmaPrime = {
+      x: profile.map(p => p.sigma_prime),
+      y: profile.map(p => p.z),
+      mode: 'lines+markers',
+      name: "Contrainte effective &sigma;'",
+      line: { color: '#dc2626', width: 3 }
+    };
+
+    const maxSigma = Math.max(...profile.map(p => p.sigma), 10);
+
+    const layout = {
+      margin: { t: 20, r: 20, l: 50, b: 50 },
+      xaxis: { title: 'Contraintes (kPa)', side: 'bottom', zeroline: true },
+      yaxis: { 
+        title: 'Profondeur z (m)', 
+        autorange: 'reversed',
+        range: [totalDepth, 0],
+        zeroline: true 
+      },
+      legend: { orientation: 'h', y: -0.15 },
+      shapes: (gwDepth !== null && gwDepth <= totalDepth) ? [
+        {
+          type: 'line',
+          x0: 0,
+          x1: maxSigma * 1.05,
+          y0: gwDepth,
+          y1: gwDepth,
+          line: { color: '#0284c7', width: 1.5, dash: 'dash' }
+        }
+      ] : [],
+      annotations: (gwDepth !== null && gwDepth <= totalDepth) ? [
+        {
+          x: maxSigma * 0.85,
+          y: gwDepth,
+          xref: 'x',
+          yref: 'y',
+          text: 'Nappe',
+          showarrow: true,
+          arrowhead: 2,
+          ax: 0,
+          ay: -18,
+          font: { color: '#0284c7', size: 10 }
+        }
+      ] : []
+    };
+
+    Plotly.newPlot('plot-area', [traceSigma, traceU, traceSigmaPrime], layout, { responsive: true });
+  }
+
+  // Initialisation : rendu du formulaire vide au chargement
+  renderLayersForm();
+</script>
+</body>
+</html>
