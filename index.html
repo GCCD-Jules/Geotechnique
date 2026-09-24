@@ -23,11 +23,60 @@
     }
 
     header {
-      margin-bottom: 24px;
-      text-align: center;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      max-width: 1450px;
+      margin: 0 auto 24px auto;
     }
-    header h1 { font-size: 1.8rem; color: #0f172a; margin-bottom: 6px; }
-    header p { color: #64748b; font-size: 0.95rem; }
+
+    .header-title h1 { 
+      font-size: 1.8rem; 
+      color: #0f172a; 
+      margin-bottom: 6px; 
+    }
+    .header-title p { 
+      color: #64748b; 
+      font-size: 0.95rem; 
+    }
+
+    .author-credit {
+      text-align: right;
+      user-select: none;
+    }
+
+    .author-credit .author-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .author-credit .author-name {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: block;
+    }
+
+    .author-credit .author-role {
+      font-size: 0.85rem;
+      color: #2563eb;
+      font-weight: 600;
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .author-credit {
+        text-align: left;
+      }
+    }
 
     .container {
       display: grid;
@@ -118,7 +167,6 @@
     }
     .btn-remove:hover { background: #dc2626; }
 
-    /* Zone de visualisation double : coupe + diagramme */
     .vis-grid {
       display: grid;
       grid-template-columns: 240px 1fr;
@@ -222,7 +270,15 @@
 <body>
 
 <header>
-  <h1>Profil des Contraintes Géotechniques (Terzaghi)</h1>
+  <div class="header-title">
+    <h1>Profil des Contraintes Géotechniques (Terzaghi)</h1>
+  </div>
+
+  <div class="author-credit">
+    <span class="author-label">Développé par</span>
+    <span class="author-name">Jules</span>
+    <span class="author-role">Étudiant BUT GCCD 2</span>
+  </div>
 </header>
 
 <div class="container">
@@ -249,12 +305,11 @@
     <button type="button" class="btn-primary" onclick="addLayer()">+ Ajouter une couche</button>
   </div>
 
-  <!-- Panneau droit : Coupe stratigraphique + Plotly + Tableau -->
   <div class="card">
     <h2 class="card-title">Visualisation du Sol & Diagramme de Contraintes</h2>
     
     <div class="vis-grid">
-      <!-- Coupe stratigraphique à l'échelle -->
+      <!-- Coupe stratigraphique -->
       <div>
         <label style="text-align: center; margin-bottom: 8px;">Coupe Géologique</label>
         <div id="strati-container">
@@ -262,7 +317,6 @@
         </div>
       </div>
 
-      <!-- Graphique Plotly -->
       <div>
         <label style="text-align: center; margin-bottom: 8px;">Courbes de Contraintes (kPa)</label>
         <div id="plot-area">
@@ -292,17 +346,15 @@
 </div>
 
 <script>
-  // Démarrage entièrement vide
   let layers = [];
 
-  // Palette de teintes naturelles pour différencier les couches de sol
   const layerColors = [
-    "#fef08a", // Jaune sable
-    "#fed7aa", // Beige limoneux
-    "#d8b4fe", // Violette marne
-    "#bbf7d0", // Argile verte
-    "#e2e8f0", // Gris remblai
-    "#fbcfe8"  // Craie rosée
+    "#fef08a",
+    "#fed7aa",
+    "#d8b4fe",
+    "#bbf7d0",
+    "#e2e8f0",
+    "#fbcfe8"
   ];
 
   function renderLayersForm() {
@@ -314,7 +366,7 @@
       layerEl.className = "layer-card";
       layerEl.innerHTML = `
         <div class="layer-header">
-          <input type="text" placeholder="Nom du sol (ex: Argile)" 
+          <input type="text" placeholder="Nom du sol (ex: Sable)" 
                  value="${layer.name || ''}" 
                  style="width: 70%; font-weight: bold;" 
                  oninput="updateLayerProp(${idx}, 'name', this.value)">
@@ -378,7 +430,6 @@
     const gwDepth = gwDepthInput === '' ? null : parseFloat(gwDepthInput);
     const gammaW = parseFloat(document.getElementById("gamma-w").value);
 
-    // Vérifier si toutes les couches saisies sont complètes et valides
     const validLayers = layers.filter(l => 
       l.thickness !== null && l.thickness > 0 &&
       l.gamma_dry !== null && l.gamma_dry >= 0 &&
@@ -396,10 +447,9 @@
       return;
     }
 
-    // 1. Calcul de la profondeur totale
     const totalDepth = validLayers.reduce((sum, l) => sum + l.thickness, 0);
 
-    // 2. Rendu de la coupe stratigraphique
+    // Coupe stratigraphique
     stratiContainer.innerHTML = "";
     let accumulatedZ = 0;
     validLayers.forEach((l, idx) => {
@@ -420,7 +470,6 @@
       stratiContainer.appendChild(layerDiv);
     });
 
-    // Ligne et repère visuel de la nappe phréatique
     if (gwDepth !== null && gwDepth >= 0 && gwDepth <= totalDepth) {
       const topPercent = (gwDepth / totalDepth) * 100;
       const waterLine = document.createElement("div");
@@ -430,7 +479,7 @@
       stratiContainer.appendChild(waterLine);
     }
 
-    // 3. Détermination des points de calcul
+    // Points de calcul
     let depths = [0];
     let runningZ = 0;
     validLayers.forEach(l => {
@@ -443,7 +492,6 @@
     }
     depths.sort((a, b) => a - b);
 
-    // 4. Calcul de sigma, u et sigma'
     let profile = [];
     let currentSigma = 0;
 
@@ -457,7 +505,6 @@
       let dz = z - prevZ;
       let midZ = (prevZ + z) / 2;
 
-      // Déterminer la couche active pour ce tronçon
       let layerZCursor = 0;
       let activeLayer = validLayers[0];
       for (let l of validLayers) {
@@ -484,7 +531,7 @@
       profile.push({ z, sigma: currentSigma, u, sigma_prime: sigmaPrime, label });
     });
 
-    // 5. Tableau des résultats
+    // Tableau
     tableBody.innerHTML = "";
     profile.forEach(p => {
       tableBody.innerHTML += `<tr>
@@ -496,7 +543,7 @@
       </tr>`;
     });
 
-    // 6. Tracé Plotly
+    // Plotly
     const traceSigma = {
       x: profile.map(p => p.sigma),
       y: profile.map(p => p.z),
@@ -562,7 +609,6 @@
     Plotly.newPlot('plot-area', [traceSigma, traceU, traceSigmaPrime], layout, { responsive: true });
   }
 
-  // Initialisation : rendu du formulaire vide au chargement
   renderLayersForm();
 </script>
 </body>
