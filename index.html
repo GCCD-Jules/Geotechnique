@@ -138,8 +138,8 @@
 
     .layer-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     button {
@@ -380,16 +380,10 @@
                    oninput="updateLayerProp(${idx}, 'thickness', this.value)">
           </div>
           <div>
-            <label>&gamma; humide (kN/m³)</label>
-            <input type="number" step="0.5" min="0" placeholder="Ex: 18"
-                   value="${layer.gamma_dry !== null ? layer.gamma_dry : ''}" 
-                   oninput="updateLayerProp(${idx}, 'gamma_dry', this.value)">
-          </div>
-          <div>
-            <label>&gamma; sat (kN/m³)</label>
-            <input type="number" step="0.5" min="0" placeholder="Ex: 20"
-                   value="${layer.gamma_sat !== null ? layer.gamma_sat : ''}" 
-                   oninput="updateLayerProp(${idx}, 'gamma_sat', this.value)">
+            <label>&gamma; (kN/m³)</label>
+            <input type="number" step="0.5" min="0" placeholder="Ex: 19"
+                   value="${layer.gamma !== null ? layer.gamma : ''}" 
+                   oninput="updateLayerProp(${idx}, 'gamma', this.value)">
           </div>
         </div>
       `;
@@ -401,8 +395,7 @@
     layers.push({
       name: `Couche ${layers.length + 1}`,
       thickness: null,
-      gamma_dry: null,
-      gamma_sat: null
+      gamma: null
     });
     renderLayersForm();
   }
@@ -432,8 +425,7 @@
 
     const validLayers = layers.filter(l => 
       l.thickness !== null && l.thickness > 0 &&
-      l.gamma_dry !== null && l.gamma_dry >= 0 &&
-      l.gamma_sat !== null && l.gamma_sat >= 0
+      l.gamma !== null && l.gamma >= 0
     );
 
     const stratiContainer = document.getElementById("strati-container");
@@ -465,7 +457,7 @@
       layerDiv.style.backgroundColor = bg;
       layerDiv.innerHTML = `
         <div>${l.name || 'Couche ' + (idx + 1)}</div>
-        <div class="strati-layer-desc">${l.thickness} m (z: ${zTop.toFixed(1)} à ${zBottom.toFixed(1)} m)</div>
+        <div class="strati-layer-desc">${l.thickness} m (z: ${zTop.toFixed(1)} à ${zBottom.toFixed(1)} m) - &gamma; = ${l.gamma} kN/m³</div>
       `;
       stratiContainer.appendChild(layerDiv);
     });
@@ -479,7 +471,7 @@
       stratiContainer.appendChild(waterLine);
     }
 
-    // Points de calcul
+    // Points de calcul (interfaces de couches et nappe)
     let depths = [0];
     let runningZ = 0;
     validLayers.forEach(l => {
@@ -515,10 +507,8 @@
         }
       }
 
-      let isSubmerged = (gwDepth !== null) && (midZ >= gwDepth);
-      let gamma = isSubmerged ? activeLayer.gamma_sat : activeLayer.gamma_dry;
-
-      currentSigma += gamma * dz;
+      // Calcul avec le gamma unique de la couche
+      currentSigma += activeLayer.gamma * dz;
 
       let u = (gwDepth !== null && z > gwDepth) ? gammaW * (z - gwDepth) : 0;
       let sigmaPrime = currentSigma - u;
@@ -531,7 +521,7 @@
       profile.push({ z, sigma: currentSigma, u, sigma_prime: sigmaPrime, label });
     });
 
-    // Tableau
+    // Tableau des résultats
     tableBody.innerHTML = "";
     profile.forEach(p => {
       tableBody.innerHTML += `<tr>
@@ -543,7 +533,7 @@
       </tr>`;
     });
 
-    // Plotly
+    // Tracé Plotly
     const traceSigma = {
       x: profile.map(p => p.sigma),
       y: profile.map(p => p.z),
