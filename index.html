@@ -277,7 +277,7 @@
   <div class="author-credit">
     <span class="author-label">Développé par</span>
     <span class="author-name">Jules</span>
-    <span class="author-role">Étudiant BUT GCCD 2</span>
+    <span class="author-role">Étudiant BUT 2 GCCD </span>
   </div>
 </header>
 
@@ -507,7 +507,6 @@
         }
       }
 
-      // Calcul avec le gamma unique de la couche
       currentSigma += activeLayer.gamma * dz;
 
       let u = (gwDepth !== null && z > gwDepth) ? gammaW * (z - gwDepth) : 0;
@@ -596,7 +595,11 @@
       ] : []
     };
 
-    Plotly.newPlot('plot-area', [traceSigma, traceU, traceSigmaPrime], layout, { responsive: true });
+    // La configuration { responsive: true, displayModeBar: false } désactive la barre d'outils
+    Plotly.newPlot('plot-area', [traceSigma, traceU, traceSigmaPrime], layout, { 
+      responsive: true, 
+      displayModeBar: false 
+    });
   }
 
   renderLayersForm();
